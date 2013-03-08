@@ -1,5 +1,5 @@
 /*
-   rtty.cpp  
+   rtty.cpp
    Copyright Jon Sowman 2010
 
    This file is part of the Ferret/librtty project, an Arduino based
@@ -46,7 +46,7 @@ void RTTY::transmit(char *str) {
 
     // Then we automatically append a newline
     strcat(str, "\n");
-    
+
     // Calculate the timestep in microseconds
     // We use two smaller delays instead of one larger as delayMicroseconds
     // is not accurate above ~16000uS, and the required delay is 20000uS
@@ -63,7 +63,7 @@ void RTTY::transmit(char *str) {
 void RTTY::_writeByte(char data) {
     // Write a single byte to the radio ensuring it is padded
     // by the correct number of start/stop bits
-    
+
     // Write the start bit
     digitalWrite(_pin, LOW);
 
