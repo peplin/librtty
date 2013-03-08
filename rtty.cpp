@@ -10,7 +10,7 @@
    http://www.cuspaceflight.co.uk
 */
 
-#include "util/crc16.h"
+#include "WProgram.h"
 #include "types.h"
 #include "rtty.h"
 
@@ -99,7 +99,7 @@ unsigned int RTTY::_crc16(char *string) {
 
     // Iterate through the string updating the checksum byte-by-byte
     for( i=0; i < strlen(string); i++ ) {
-        crc = _crc_xmodem_update(crc, (uint8_t)(string[i]));
+        // crc = _crc_xmodem_update(crc, (uint8_t)(string[i]));
     }
 
     return crc;
