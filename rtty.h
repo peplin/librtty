@@ -18,7 +18,7 @@
 
 class RTTY {
   public:
-    RTTY(int pin, int baud, float stopbits, checksum_type ctype);
+    RTTY(int pin, int baud, float stopbits, checksum_type ctype, bool reverse);
     void transmit(char *str);
     void setBaud(int baud);
     int getBaud();
@@ -31,6 +31,7 @@ class RTTY {
     const float _stopbits;
     int _timestep;
     checksum_type _ctype;
+    bool _reverse;
 };
 
 #endif

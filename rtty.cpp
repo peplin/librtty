@@ -14,8 +14,8 @@
 #include "types.h"
 #include "rtty.h"
 
-RTTY::RTTY(int pin, int baud, float stopbits, checksum_type ctype)
-    : _pin(pin), _stopbits(stopbits), _ctype(ctype)
+RTTY::RTTY(int pin, int baud, float stopbits, checksum_type ctype, bool reverse)
+    : _pin(pin), _stopbits(stopbits), _ctype(ctype), _reverse(reverse)
 {
     // Set the radio TXD pin to output
     pinMode(_pin, OUTPUT);
@@ -64,7 +64,7 @@ void RTTY::_writeByte(char data) {
     // by the correct number of start/stop bits
 
     // Write the start bit
-    digitalWrite(_pin, LOW);
+    digitalWrite(_pin, _reverse ? HIGH : LOW);
 
     // We use delayMicroseconds as it is unaffected by Timer0, unlike delay()
     delayMicroseconds(_timestep);
@@ -74,16 +74,16 @@ void RTTY::_writeByte(char data) {
     int bit;
     for ( bit=0; bit<7; bit++ ) {
         if ( data & (1<<bit) ) {
-            digitalWrite(_pin, HIGH);
+            digitalWrite(_pin, _reverse ? LOW : HIGH);
         } else {
-            digitalWrite(_pin, LOW);
+            digitalWrite(_pin, _reverse ? HIGH : LOW);
         }
         delayMicroseconds(_timestep);
         delayMicroseconds(_timestep);
     }
 
     // Write the stop bit(s)
-    digitalWrite(_pin, HIGH);
+    digitalWrite(_pin, _reverse ? LOW : HIGH);
     delayMicroseconds((int)(_timestep * _stopbits));
     delayMicroseconds((int)(_timestep * _stopbits));
 }
