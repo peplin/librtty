@@ -13,7 +13,7 @@
 #ifndef rtty_h
 #define rtty_h
 
-#include "WProgram.h"
+#include "Arduino.h"
 #include "types.h"
 
 class RTTY {

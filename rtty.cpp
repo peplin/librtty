@@ -10,7 +10,6 @@
    http://www.cuspaceflight.co.uk
 */
 
-#include "WProgram.h"
 #include "util/crc16.h"
 #include "types.h"
 #include "rtty.h"
