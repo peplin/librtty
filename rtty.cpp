@@ -14,8 +14,10 @@
 #include "types.h"
 #include "rtty.h"
 
-RTTY::RTTY(int pin, int baud, float stopbits, checksum_type ctype, bool reverse)
-    : _pin(pin), _stopbits(stopbits), _ctype(ctype), _reverse(reverse)
+RTTY::RTTY(int pin, int baud, float stopbits, checksum_type ctype, bool reverse,
+        bool echo)
+    : _pin(pin), _stopbits(stopbits), _ctype(ctype), _reverse(reverse),
+        _echo(echo)
 {
     // Set the radio TXD pin to output
     pinMode(_pin, OUTPUT);
@@ -80,6 +82,10 @@ void RTTY::transmit(char data) {
         }
         delayMicroseconds(_timestep);
         delayMicroseconds(_timestep);
+    }
+
+    if(_echo) {
+        Serial.print(data);
     }
 
     // Write the stop bit(s)
