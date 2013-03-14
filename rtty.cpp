@@ -54,12 +54,12 @@ void RTTY::transmit(char *str) {
     // Iterate through the string transmitting byte-by-byte
     int j=0;
     while(str[j] != 0) {
-        _writeByte(str[j]);
+        transmit(str[j]);
         j++;
     }
 }
 
-void RTTY::_writeByte(char data) {
+void RTTY::transmit(char data) {
     // Write a single byte to the radio ensuring it is padded
     // by the correct number of start/stop bits
 
