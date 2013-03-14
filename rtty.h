@@ -21,6 +21,9 @@ class RTTY {
             bool echo);
     void transmit(char *str);
     void transmit(char data);
+    void writeStopBit();
+    void writeStartBit();
+    void writeBit(uint8_t data, int bit);
     void setBaud(int baud);
     int getBaud();
     void setChecksum(checksum_type ctype);

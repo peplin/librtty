@@ -61,12 +61,27 @@ void RTTY::transmit(char *str) {
     }
 }
 
+void RTTY::writeBit(uint8_t data, int bit) {
+    if (data & (1 << bit) ) {
+        digitalWrite(_pin, _reverse ? LOW : HIGH);
+    } else {
+        digitalWrite(_pin, _reverse ? HIGH : LOW);
+    }
+}
+
+void RTTY::writeStopBit() {
+    digitalWrite(_pin, _reverse ? LOW : HIGH);
+}
+
+void RTTY::writeStartBit() {
+    digitalWrite(_pin, _reverse ? HIGH : LOW);
+}
+
 void RTTY::transmit(char data) {
     // Write a single byte to the radio ensuring it is padded
     // by the correct number of start/stop bits
 
-    // Write the start bit
-    digitalWrite(_pin, _reverse ? HIGH : LOW);
+    writeStartBit();
 
     // We use delayMicroseconds as it is unaffected by Timer0, unlike delay()
     delayMicroseconds(_timestep);
@@ -75,11 +90,7 @@ void RTTY::transmit(char data) {
     // Write the data byte
     int bit;
     for ( bit=0; bit<7; bit++ ) {
-        if ( data & (1<<bit) ) {
-            digitalWrite(_pin, _reverse ? LOW : HIGH);
-        } else {
-            digitalWrite(_pin, _reverse ? HIGH : LOW);
-        }
+        writeBit(data, bit);
         delayMicroseconds(_timestep);
         delayMicroseconds(_timestep);
     }
@@ -88,8 +99,7 @@ void RTTY::transmit(char data) {
         Serial.print(data);
     }
 
-    // Write the stop bit(s)
-    digitalWrite(_pin, _reverse ? LOW : HIGH);
+    writeStopBit();
     delayMicroseconds((int)(_timestep * _stopbits));
     delayMicroseconds((int)(_timestep * _stopbits));
 }
