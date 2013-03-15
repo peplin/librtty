@@ -1,0 +1,3 @@
+[submodule "emqueue"]
+	path = emqueue
+	url = https://github.com/openxc/emqueue

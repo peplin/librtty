@@ -14,6 +14,8 @@
 #include "types.h"
 #include "rtty.h"
 
+QUEUE_DEFINE(uint8_t);
+
 RTTY::RTTY(int pin, int baud, float stopbits, checksum_type ctype, bool reverse,
         bool echo)
     : _pin(pin), _stopbits(stopbits), _ctype(ctype), _reverse(reverse),
@@ -61,7 +63,7 @@ void RTTY::transmit(char *str) {
     }
 }
 
-void RTTY::writeBit(uint8_t data, int bit) {
+void RTTY::_writeBit(uint8_t data, int bit) {
     if (data & (1 << bit) ) {
         digitalWrite(_pin, _reverse ? LOW : HIGH);
     } else {
@@ -69,11 +71,11 @@ void RTTY::writeBit(uint8_t data, int bit) {
     }
 }
 
-void RTTY::writeStopBit() {
+void RTTY::_writeStopBit() {
     digitalWrite(_pin, _reverse ? LOW : HIGH);
 }
 
-void RTTY::writeStartBit() {
+void RTTY::_writeStartBit() {
     digitalWrite(_pin, _reverse ? HIGH : LOW);
 }
 
@@ -81,7 +83,7 @@ void RTTY::transmit(char data) {
     // Write a single byte to the radio ensuring it is padded
     // by the correct number of start/stop bits
 
-    writeStartBit();
+    _writeStartBit();
 
     // We use delayMicroseconds as it is unaffected by Timer0, unlike delay()
     delayMicroseconds(_timestep);
@@ -89,8 +91,8 @@ void RTTY::transmit(char data) {
 
     // Write the data byte
     int bit;
-    for ( bit=0; bit<7; bit++ ) {
-        writeBit(data, bit);
+    for ( bit=0; bit < ASCII_BITSIZE; bit++ ) {
+        _writeBit(data, bit);
         delayMicroseconds(_timestep);
         delayMicroseconds(_timestep);
     }
@@ -99,7 +101,7 @@ void RTTY::transmit(char data) {
         Serial.print(data);
     }
 
-    writeStopBit();
+    _writeStopBit();
     delayMicroseconds((int)(_timestep * _stopbits));
     delayMicroseconds((int)(_timestep * _stopbits));
 }
@@ -144,4 +146,52 @@ checksum_type RTTY::getChecksum() {
     return _ctype;
 }
 
+AsynchronousRTTY::AsynchronousRTTY(int pin, int baud, float stopbits,
+        checksum_type ctype, bool reverse, bool echo) :
+        RTTY(pin, baud, stopbits, ctype, reverse, echo),
+        _transmissionPhase(RTTY_PHASE_START) {
+    QUEUE_INIT(uint8_t, &_queue);
+}
 
+void AsynchronousRTTY::transmitInterrupt() {
+    switch(_transmissionPhase) {
+    case RTTY_PHASE_START: // Grab a char and lets go transmit it.
+        if(!_queueLock && !QUEUE_EMPTY(uint8_t, &_queue)) {
+            _currentByte = QUEUE_POP(uint8_t, &_queue);
+            _currentBit = 0;
+            _transmissionPhase = RTTY_PHASE_SENDING;
+            _writeStartBit();
+        }
+        break;
+    case RTTY_PHASE_SENDING:
+        if(_currentBit < ASCII_BITSIZE) {
+            _writeBit(_currentByte, _currentBit);
+            ++_currentBit;
+        } else {
+            _writeStopBit();
+            _transmissionPhase = RTTY_PHASE_STOP;
+        }
+        break;
+    case RTTY_PHASE_STOP:
+        if(_stopbits == 2) {
+            _writeStopBit();
+        }
+        _transmissionPhase = RTTY_PHASE_START;
+        break;
+    }
+}
+
+int AsynchronousRTTY::bufferSize() {
+    return QUEUE_LENGTH(uint8_t, &_queue);
+}
+
+void AsynchronousRTTY::transmitAsync(char* data) {
+    // TODO add checksum
+    _queueLock = true;
+    int i = 0;
+    while(data[i] != NULL) {
+        QUEUE_PUSH(uint8_t, &_queue, data[i]);
+        ++i;
+    }
+    _queueLock = false;
+}
