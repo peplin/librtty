@@ -16,8 +16,6 @@
 #include "types.h"
 #include "emqueue/emqueue.h"
 
-#define ASCII_BITSIZE 7
-
 QUEUE_DECLARE(uint8_t, 255);
 
 typedef enum {
@@ -26,8 +24,8 @@ typedef enum {
 
 class RTTY {
 public:
-    RTTY(int pin, int baud, float stopbits, checksum_type ctype, bool reverse,
-            bool echo);
+    RTTY(int pin, int baud, float stopbits, int asciibits, checksum_type ctype,
+            bool reverse, bool echo);
     void transmit(char *str);
     void transmit(char data);
     void setBaud(int baud);
@@ -40,6 +38,7 @@ protected:
     void _writeStartBit();
     void _writeBit(uint8_t data, int bit);
     const float _stopbits;
+    const int _asciibits;
 private:
     unsigned int _crc16(char *string);
     unsigned int _crc_1021(unsigned int old_crc, uint8_t data);
@@ -52,8 +51,8 @@ private:
 
 class AsynchronousRTTY : public RTTY {
 public:
-    AsynchronousRTTY(int pin, int baud, float stopbits, checksum_type ctype,
-            bool reverse, bool echo);
+    AsynchronousRTTY(int pin, int baud, float stopbits, int asciibits,
+            checksum_type ctype, bool reverse, bool echo);
     void transmitInterrupt();
     int bufferSize();
     void transmitAsync(char* str);

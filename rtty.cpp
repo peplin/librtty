@@ -16,10 +16,10 @@
 
 QUEUE_DEFINE(uint8_t);
 
-RTTY::RTTY(int pin, int baud, float stopbits, checksum_type ctype, bool reverse,
-        bool echo)
-    : _pin(pin), _stopbits(stopbits), _ctype(ctype), _reverse(reverse),
-        _echo(echo)
+RTTY::RTTY(int pin, int baud, float stopbits, int asciibits,
+        checksum_type ctype, bool reverse, bool echo)
+    : _pin(pin), _stopbits(stopbits), _asciibits(asciibits), _ctype(ctype),
+        _reverse(reverse), _echo(echo)
 {
     // Set the radio TXD pin to output
     pinMode(_pin, OUTPUT);
@@ -94,7 +94,7 @@ void RTTY::transmit(char data) {
 
     // Write the data byte
     int bit;
-    for ( bit=0; bit < ASCII_BITSIZE; bit++ ) {
+    for ( bit=0; bit < _asciibits; bit++ ) {
         _writeBit(data, bit);
         delayMicroseconds(_timestep);
         delayMicroseconds(_timestep);
@@ -163,8 +163,8 @@ checksum_type RTTY::getChecksum() {
 }
 
 AsynchronousRTTY::AsynchronousRTTY(int pin, int baud, float stopbits,
-        checksum_type ctype, bool reverse, bool echo) :
-        RTTY(pin, baud, stopbits, ctype, reverse, echo),
+        int asciibits, checksum_type ctype, bool reverse, bool echo) :
+        RTTY(pin, baud, stopbits, asciibits, ctype, reverse, echo),
         _transmissionPhase(RTTY_PHASE_START) {
     QUEUE_INIT(uint8_t, &_queue);
 }
@@ -180,7 +180,7 @@ void AsynchronousRTTY::transmitInterrupt() {
         }
         break;
     case RTTY_PHASE_SENDING:
-        if(_currentBit < ASCII_BITSIZE) {
+        if(_currentBit < _asciibits) {
             _writeBit(_currentByte, _currentBit);
             ++_currentBit;
         } else {
