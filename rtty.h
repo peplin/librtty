@@ -35,12 +35,14 @@ public:
     void setChecksum(checksum_type ctype);
     checksum_type getChecksum();
 protected:
+    void _preprocessTransmission(char *str);
     void _writeStopBit();
     void _writeStartBit();
     void _writeBit(uint8_t data, int bit);
     const float _stopbits;
 private:
     unsigned int _crc16(char *string);
+    unsigned int _crc_1021(unsigned int old_crc, uint8_t data);
     const int _pin;
     int _timestep;
     checksum_type _ctype;

@@ -26,10 +26,7 @@ RTTY::RTTY(int pin, int baud, float stopbits, checksum_type ctype, bool reverse,
     _timestep = (int)(500000/baud);
 }
 
-void RTTY::transmit(char *str) {
-    // Transmit an input string over the radio after appending a checksum
-    // if required
-
+void RTTY::_preprocessTransmission(char *str) {
     // First we calculate a checksum if required and append it to the
     // transmit string if so
     unsigned int checksum;
@@ -49,11 +46,12 @@ void RTTY::transmit(char *str) {
 
     // Then we automatically append a newline
     strcat(str, "\n");
+}
 
-    // Calculate the timestep in microseconds
-    // We use two smaller delays instead of one larger as delayMicroseconds
-    // is not accurate above ~16000uS, and the required delay is 20000uS
-    // for 50 baud operation
+void RTTY::transmit(char *str) {
+    // Transmit an input string over the radio after appending a checksum
+    // if required
+    _preprocessTransmission(str);
 
     // Iterate through the string transmitting byte-by-byte
     int j=0;
@@ -84,6 +82,11 @@ void RTTY::transmit(char data) {
     // by the correct number of start/stop bits
 
     _writeStartBit();
+
+    // Calculate the timestep in microseconds
+    // We use two smaller delays instead of one larger as delayMicroseconds
+    // is not accurate above ~16000uS, and the required delay is 20000uS
+    // for 50 baud operation
 
     // We use delayMicroseconds as it is unaffected by Timer0, unlike delay()
     delayMicroseconds(_timestep);
@@ -117,10 +120,23 @@ unsigned int RTTY::_crc16(char *string) {
 
     // Iterate through the string updating the checksum byte-by-byte
     for( i=0; i < strlen(string); i++ ) {
-        // crc = _crc_xmodem_update(crc, (uint8_t)(string[i]));
+        crc = _crc_1021(crc, (uint8_t)(string[i]));
     }
 
     return crc;
+}
+
+// Borrowed from http://www.ccsinfo.com/forum/viewtopic.php?t=24977
+unsigned int RTTY::_crc_1021(unsigned int old_crc, uint8_t data) {
+  unsigned int crc;
+  unsigned int x;
+
+  x = ((old_crc >> 8) ^ data) & 0xff;
+  x ^= x >> 4;
+
+  crc = (old_crc << 8) ^ (x << 12) ^ (x << 5) ^ x;
+  crc &= 0xffff;
+  return crc;
 }
 
 void RTTY::setBaud(int baud) {
@@ -186,7 +202,7 @@ int AsynchronousRTTY::bufferSize() {
 }
 
 void AsynchronousRTTY::transmitAsync(char* data) {
-    // TODO add checksum
+    _preprocessTransmission(data);
     _queueLock = true;
     int i = 0;
     while(data[i] != NULL) {
