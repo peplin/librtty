@@ -16,14 +16,17 @@
 
 QUEUE_DEFINE(uint8_t);
 
-RTTY::RTTY(int pin, int baud, float stopbits, int asciibits,
-        checksum_type ctype, bool reverse, bool echo)
-    : _pin(pin), _stopbits(stopbits), _asciibits(asciibits), _ctype(ctype),
-        _reverse(reverse), _echo(echo)
+RTTY::RTTY(int enablePin, int transmitPin, int baud, float stopbits,
+        int asciibits, checksum_type ctype, bool reverse, bool echo)
+    : _enablePin(enablePin), _transmitPin(transmitPin), _stopbits(stopbits),
+      _asciibits(asciibits), _ctype(ctype), _reverse(reverse), _echo(echo)
 {
+    pinMode(_enablePin, OUTPUT);
+
     // Set the radio TXD pin to output
-    pinMode(_pin, OUTPUT);
+    pinMode(_transmitPin, OUTPUT);
     _timestep = (int)(500000/baud);
+    _setRadioStatus(false);
 }
 
 void RTTY::_preprocessTransmission(char *str) {
@@ -63,21 +66,26 @@ void RTTY::transmit(char *str) {
 
 void RTTY::_writeBit(uint8_t data, int bit) {
     if (data & (1 << bit) ) {
-        digitalWrite(_pin, _reverse ? LOW : HIGH);
+        digitalWrite(_transmitPin, _reverse ? LOW : HIGH);
     } else {
-        digitalWrite(_pin, _reverse ? HIGH : LOW);
+        digitalWrite(_transmitPin, _reverse ? HIGH : LOW);
     }
 }
 
 void RTTY::_writeStopBit() {
-    digitalWrite(_pin, _reverse ? LOW : HIGH);
+    digitalWrite(_transmitPin, _reverse ? LOW : HIGH);
 }
 
 void RTTY::_writeStartBit() {
-    digitalWrite(_pin, _reverse ? HIGH : LOW);
+    digitalWrite(_transmitPin, _reverse ? HIGH : LOW);
+}
+
+void RTTY::_setRadioStatus(bool status) {
+    digitalWrite(_enablePin, status ? HIGH : LOW);
 }
 
 void RTTY::transmit(char data) {
+    _setRadioStatus(true);
     // Write a single byte to the radio ensuring it is padded
     // by the correct number of start/stop bits
 
@@ -107,6 +115,8 @@ void RTTY::transmit(char data) {
     _writeStopBit();
     delayMicroseconds((int)(_timestep * _stopbits));
     delayMicroseconds((int)(_timestep * _stopbits));
+
+    _setRadioStatus(false);
 }
 
 unsigned int RTTY::_crc16(char *string) {
@@ -162,10 +172,11 @@ checksum_type RTTY::getChecksum() {
     return _ctype;
 }
 
-AsynchronousRTTY::AsynchronousRTTY(int pin, int baud, float stopbits,
-        int asciibits, checksum_type ctype, bool reverse, bool echo) :
-        RTTY(pin, baud, stopbits, asciibits, ctype, reverse, echo),
-        _transmissionPhase(RTTY_PHASE_START) {
+AsynchronousRTTY::AsynchronousRTTY(int enablePin, int transmitPin, int baud,
+        float stopbits, int asciibits, checksum_type ctype, bool reverse,
+        bool echo) :
+        RTTY(enablePin, transmitPin, baud, stopbits, asciibits, ctype, reverse,
+                echo), _transmissionPhase(RTTY_PHASE_START) {
     QUEUE_INIT(uint8_t, &_queue);
 }
 
@@ -173,6 +184,7 @@ void AsynchronousRTTY::transmitInterrupt() {
     switch(_transmissionPhase) {
     case RTTY_PHASE_START: // Grab a char and lets go transmit it.
         if(!_queueLock && !QUEUE_EMPTY(uint8_t, &_queue)) {
+            _setRadioStatus(true);
             _currentByte = QUEUE_POP(uint8_t, &_queue);
             _currentBit = 0;
             _transmissionPhase = RTTY_PHASE_SENDING;
@@ -193,6 +205,7 @@ void AsynchronousRTTY::transmitInterrupt() {
             _writeStopBit();
         }
         _transmissionPhase = RTTY_PHASE_START;
+        _setRadioStatus(false);
         break;
     }
 }

@@ -24,8 +24,8 @@ typedef enum {
 
 class RTTY {
 public:
-    RTTY(int pin, int baud, float stopbits, int asciibits, checksum_type ctype,
-            bool reverse, bool echo);
+    RTTY(int enablePin, int transmitPin, int baud, float stopbits,
+            int asciibits, checksum_type ctype, bool reverse, bool echo);
     void transmit(char *str);
     void transmit(char data);
     void setBaud(int baud);
@@ -36,13 +36,15 @@ protected:
     void _preprocessTransmission(char *str);
     void _writeStopBit();
     void _writeStartBit();
+    void _setRadioStatus(bool status);
     void _writeBit(uint8_t data, int bit);
     const float _stopbits;
     const int _asciibits;
 private:
     unsigned int _crc16(char *string);
     unsigned int _crc_1021(unsigned int old_crc, uint8_t data);
-    const int _pin;
+    const int _enablePin;
+    const int _transmitPin;
     int _timestep;
     checksum_type _ctype;
     bool _reverse;
@@ -51,8 +53,8 @@ private:
 
 class AsynchronousRTTY : public RTTY {
 public:
-    AsynchronousRTTY(int pin, int baud, float stopbits, int asciibits,
-            checksum_type ctype, bool reverse, bool echo);
+    AsynchronousRTTY(int enablePin, int transmitPin, int baud, float stopbits,
+            int asciibits, checksum_type ctype, bool reverse, bool echo);
     void transmitInterrupt();
     int bufferSize();
     void transmitAsync(char* str);
